@@ -1,0 +1,12 @@
+---
+# Cómo arranca K3s en el control plane. El rol docker_node usa este comando
+# para el contenedor; con otro proveedor de nodos (VMs) se usaría igual.
+k3s_command:
+  - server
+  - --node-name={{ inventory_hostname }}
+  - --node-ip={{ node_ip }}
+  - --tls-san={{ node_ip }}
+  # El server queda dedicado al control plane: los pods de The Store van a los agents.
+  - --node-taint=node-role.kubernetes.io/control-plane:NoSchedule
+k3s_env:
+  K3S_TOKEN: "{{ k3s_token }}"

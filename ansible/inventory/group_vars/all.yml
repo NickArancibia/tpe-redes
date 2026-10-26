@@ -1,0 +1,31 @@
+---
+# Ansible corre en el host: cada "host" del inventario es un nodo-contenedor,
+# así que las tareas se ejecutan localmente y usan el Python de Ansible
+# (que tiene las librerías docker y kubernetes).
+ansible_connection: local
+ansible_python_interpreter: "{{ ansible_playbook_python }}"
+
+project_name: the-store-k3s
+project_label:
+  com.the-store.project: "{{ project_name }}"
+project_dir: "{{ playbook_dir }}"
+artifacts_dir: "{{ project_dir }}/artifacts"
+
+# Red Docker de los nodos
+k3s_network_name: k3s-net
+k3s_network_subnet: 172.28.0.0/24
+k3s_network_gateway: 172.28.0.1
+
+# K3s
+k3s_image: rancher/k3s:v1.33.4-k3s1
+k3s_server_ip: "{{ hostvars[groups['k3s_server'][0]]['node_ip'] }}"
+k3s_server_url: "https://{{ k3s_server_ip }}:6443"
+k3s_kubeconfig: "{{ artifacts_dir }}/kubeconfig"
+# El token se genera una única vez y se guarda en artifacts/ (no se versiona).
+k3s_token: "{{ lookup('ansible.builtin.password', artifacts_dir + '/k3s-token', chars=['ascii_letters', 'digits'], length=48) }}"
+
+# The Store
+store_namespace: the-store
+store_registry: ghcr.io/nickarancibia
+store_image_tag: "1.0.0"
+store_services: [catalog, cart, orders, checkout, ui]

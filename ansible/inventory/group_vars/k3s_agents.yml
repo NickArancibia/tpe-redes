@@ -1,0 +1,9 @@
+---
+# Cómo arranca K3s en los workers: se unen al server con la URL de la API y el token.
+k3s_command:
+  - agent
+  - --node-name={{ inventory_hostname }}
+  - --node-ip={{ node_ip }}
+k3s_env:
+  K3S_URL: "{{ k3s_server_url }}"
+  K3S_TOKEN: "{{ k3s_token }}"
