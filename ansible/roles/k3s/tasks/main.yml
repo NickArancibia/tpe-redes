@@ -1,0 +1,11 @@
+---
+# K3s ya arrancó como proceso del nodo; este rol verifica que el clúster
+# responda y espera a que el nodo esté Ready. En el server, además, espera
+# la API y deja el kubeconfig en el host.
+
+- name: Preparar el acceso al clúster desde el host
+  ansible.builtin.include_tasks: server.yml
+  when: inventory_hostname in groups['k3s_server']
+
+- name: Esperar a que el nodo esté Ready
+  ansible.builtin.include_tasks: ready.yml

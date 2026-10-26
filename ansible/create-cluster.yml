@@ -1,0 +1,25 @@
+---
+# Caso 1 · Levantar el clúster desde cero a partir del inventario.
+# Idempotente: una segunda ejecución sobre un clúster correcto da changed=0.
+#
+#   ansible-playbook create-cluster.yml
+
+- name: Crear el control plane
+  hosts: k3s_server
+  gather_facts: false
+  roles:
+    - role: docker_node
+      vars:
+        node_command: "{{ k3s_command }}"
+        node_env: "{{ k3s_env }}"
+    - role: k3s
+
+- name: Crear los workers y unirlos al clúster
+  hosts: k3s_agents
+  gather_facts: false
+  roles:
+    - role: docker_node
+      vars:
+        node_command: "{{ k3s_command }}"
+        node_env: "{{ k3s_env }}"
+    - role: k3s

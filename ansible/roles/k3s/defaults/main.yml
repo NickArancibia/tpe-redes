@@ -1,0 +1,3 @@
+---
+k3s_ready_retries: 60
+k3s_ready_delay: 3

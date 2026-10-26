@@ -1,0 +1,13 @@
+---
+- name: Esperar a que el nodo esté Ready
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ k3s_kubeconfig }}"
+    kind: Node
+    name: "{{ inventory_hostname }}"
+  register: k3s_node
+  until: >-
+    k3s_node.resources | length > 0 and
+    (k3s_node.resources[0].status.conditions | default([])
+     | selectattr('type', 'equalto', 'Ready') | map(attribute='status') | first | default('False')) == 'True'
+  retries: "{{ k3s_ready_retries }}"
+  delay: "{{ k3s_ready_delay }}"

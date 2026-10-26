@@ -1,0 +1,24 @@
+---
+# Solo en el control plane: esperar la API y dejar el kubeconfig en el host.
+
+- name: Esperar a que la API de Kubernetes escuche en {{ k3s_server_url }}
+  ansible.builtin.wait_for:
+    host: "{{ node_ip }}"
+    port: 6443
+    timeout: 180
+
+- name: Leer el kubeconfig que genera K3s en el server
+  community.docker.docker_container_exec:
+    container: "{{ inventory_hostname }}"
+    command: cat /etc/rancher/k3s/k3s.yaml
+  register: k3s_yaml
+  until: k3s_yaml.rc == 0
+  retries: 30
+  delay: 2
+  changed_when: false
+
+- name: Guardar el kubeconfig en el host apuntando a la IP del server
+  ansible.builtin.copy:
+    content: "{{ k3s_yaml.stdout | replace('https://127.0.0.1:6443', k3s_server_url) }}\n"
+    dest: "{{ k3s_kubeconfig }}"
+    mode: "0600"
