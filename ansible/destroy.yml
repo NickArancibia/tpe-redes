@@ -1,0 +1,48 @@
+---
+# Caso 5 · Destruir el entorno completo: contenedores, red, volúmenes y
+# artefactos locales (kubeconfig y token). Busca los recursos por la etiqueta
+# del proyecto, así también borra nodos que ya no están en el inventario.
+#
+#   ansible-playbook destroy.yml
+
+- name: Destruir el clúster
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Buscar los recursos Docker del proyecto
+      community.docker.docker_host_info:
+        containers: true
+        containers_all: true
+        containers_filters:
+          label: "com.the-store.project={{ project_name }}"
+        volumes: true
+        volumes_filters:
+          label: "com.the-store.project={{ project_name }}"
+      register: project_resources
+
+    - name: Eliminar los contenedores de los nodos
+      community.docker.docker_container:
+        name: "{{ item.Names[0] | regex_replace('^/', '') }}"
+        keep_volumes: false
+        state: absent
+      loop: "{{ project_resources.containers }}"
+      loop_control:
+        label: "{{ item.Names[0] | regex_replace('^/', '') }}"
+
+    - name: Eliminar la red {{ k3s_network_name }}
+      community.docker.docker_network:
+        name: "{{ k3s_network_name }}"
+        state: absent
+
+    - name: Eliminar los volúmenes de los nodos
+      community.docker.docker_volume:
+        name: "{{ item.Name }}"
+        state: absent
+      loop: "{{ project_resources.volumes }}"
+      loop_control:
+        label: "{{ item.Name }}"
+
+    - name: Eliminar el kubeconfig y el token
+      ansible.builtin.file:
+        path: "{{ artifacts_dir }}"
+        state: absent
