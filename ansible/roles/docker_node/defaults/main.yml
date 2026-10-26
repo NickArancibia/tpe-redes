@@ -1,0 +1,5 @@
+---
+# Comando y variables de entorno del proceso principal del nodo.
+node_command: []
+node_env: {}
+node_volume: "{{ inventory_hostname }}-data"

@@ -1,0 +1,46 @@
+---
+# Proveedor de nodos: crea la "máquina" donde corre K3s, que en este POC es un
+# contenedor Docker con IP fija en k3s-net. Reemplazando este rol se podrían
+# usar VMs sin tocar el resto de los playbooks.
+
+- name: Crear la red de los nodos ({{ k3s_network_subnet }})
+  community.docker.docker_network:
+    name: "{{ k3s_network_name }}"
+    driver: bridge
+    ipam_config:
+      - subnet: "{{ k3s_network_subnet }}"
+        gateway: "{{ k3s_network_gateway }}"
+    labels: "{{ project_label }}"
+  run_once: true
+
+- name: Crear el volumen de datos del nodo
+  community.docker.docker_volume:
+    name: "{{ node_volume }}"
+    labels: "{{ project_label }}"
+
+- name: Crear el contenedor del nodo
+  community.docker.docker_container:
+    name: "{{ inventory_hostname }}"
+    hostname: "{{ inventory_hostname }}"
+    image: "{{ k3s_image }}"
+    command: "{{ node_command }}"
+    env: "{{ node_env }}"
+    # K3s necesita modo privilegiado para administrar la red y los cgroups de los pods.
+    privileged: true
+    tmpfs:
+      - /run
+      - /var/run
+    ulimits:
+      - nproc:65535:65535
+      - nofile:65535:65535
+    volumes:
+      - "{{ node_volume }}:/var/lib/rancher/k3s"
+    networks:
+      - name: "{{ k3s_network_name }}"
+        ipv4_address: "{{ node_ip }}"
+    network_mode: "{{ k3s_network_name }}"
+    restart_policy: unless-stopped
+    labels: "{{ project_label | combine({'com.the-store.node': inventory_hostname}) }}"
+    # Al recrear o borrar el contenedor no quedan volúmenes anónimos huérfanos.
+    keep_volumes: false
+    state: started

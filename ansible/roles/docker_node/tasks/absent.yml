@@ -1,0 +1,11 @@
+---
+- name: Eliminar el contenedor del nodo
+  community.docker.docker_container:
+    name: "{{ inventory_hostname }}"
+    keep_volumes: false
+    state: absent
+
+- name: Eliminar el volumen de datos del nodo
+  community.docker.docker_volume:
+    name: "{{ node_volume }}"
+    state: absent
