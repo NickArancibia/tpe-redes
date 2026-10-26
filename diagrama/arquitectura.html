@@ -1,0 +1,96 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;background:#fff}
+svg{font-family:'IBM Plex Mono',monospace;display:block}
+.t{font-size:21px;fill:#1f2328;font-weight:600}
+.s{font-size:16px;fill:#57606a}
+.c{font-size:18px;fill:#1f2328}
+.l{font-size:15px;fill:#1f2328}
+.chip{fill:#eaf0fb;stroke:#2f55d4;stroke-width:1.5}
+.gchip{fill:#f6f7f8;stroke:#c9ccd1;stroke-width:1.5}
+.node{fill:#fff;stroke:#c9ccd1;stroke-width:2}
+.arr{stroke:#1f2328;stroke-width:2.5;fill:none}
+.api{stroke:#2f55d4;stroke-width:2.5;fill:none}
+</style></head><body>
+<svg width="1400" height="1160" viewBox="0 0 1400 1160">
+<defs>
+ <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#1f2328"/></marker>
+ <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#2f55d4"/></marker>
+</defs>
+
+<!-- HOST -->
+<rect x="30" y="290" width="290" height="490" rx="12" class="node"/>
+<text x="175" y="332" text-anchor="middle" class="c" fill="#57606a">HOST</text>
+<text x="175" y="358" text-anchor="middle" class="s">Ubuntu 24.04 · KVM</text>
+<g class="c" text-anchor="middle">
+ <rect x="55" y="385" width="240" height="46" rx="4" class="gchip"/><text x="175" y="414">Ansible</text>
+ <rect x="55" y="443" width="240" height="46" rx="4" class="gchip"/><text x="175" y="472">kubectl</text>
+ <rect x="55" y="501" width="240" height="46" rx="4" class="gchip"/><text x="175" y="530">autoescalador</text>
+ <rect x="55" y="559" width="240" height="46" rx="4" class="gchip"/><text x="175" y="588">HAProxy :80</text>
+ <rect x="55" y="617" width="240" height="46" rx="4" class="gchip"/><text x="175" y="646">Multipass</text>
+</g>
+<text x="175" y="712" text-anchor="middle" class="s">bridge k3sbr0</text>
+<text x="175" y="738" text-anchor="middle" class="c" font-weight="600">192.168.100.1</text>
+
+<!-- flechas host <-> nodos -->
+<g class="l" text-anchor="middle">
+ <text x="372" y="428">SSH 22</text><line x1="325" y1="440" x2="420" y2="440" class="arr" marker-end="url(#a)"/>
+ <text x="372" y="498">API 6443</text><line x1="325" y1="510" x2="420" y2="510" class="arr" marker-end="url(#a)"/>
+ <text x="372" y="568">HTTP 80</text><line x1="325" y1="580" x2="420" y2="580" class="arr" marker-end="url(#a)"/>
+</g>
+
+<!-- RED DE NODOS -->
+<rect x="430" y="50" width="940" height="915" rx="18" fill="none" stroke="#6e7781" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="460" y="96" class="t">Red de nodos 192.168.100.0/24</text>
+<text x="460" y="126" class="s">IPs fijas · Ubuntu Server 24.04 LTS</text>
+
+<!-- server -->
+<rect x="470" y="155" width="800" height="185" rx="12" fill="#fff" stroke="#2f55d4" stroke-width="3"/>
+<text x="500" y="197" class="t">k3s-server · 192.168.100.10</text>
+<g class="c" text-anchor="middle">
+ <rect x="500" y="218" width="245" height="54" rx="4" class="chip"/><text x="622" y="251">control plane</text>
+ <rect x="765" y="218" width="245" height="54" rx="4" class="chip"/><text x="887" y="251">pods de sistema</text>
+ <rect x="1030" y="218" width="210" height="54" rx="4" class="gchip"/><text x="1135" y="251">publica :80</text>
+</g>
+<text x="500" y="312" class="s">subred de pods: 10.42.0.0/24</text>
+
+<!-- agents -->
+<g>
+ <rect x="470" y="365" width="800" height="185" rx="12" class="node"/>
+ <text x="500" y="407" class="t">k3s-agent-1 · 192.168.100.11</text>
+ <rect x="500" y="428" width="510" height="54" rx="4" class="chip"/><text x="755" y="461" text-anchor="middle" class="c">Traefik + microservicios de The Store</text>
+ <rect x="1030" y="428" width="210" height="54" rx="4" class="gchip"/><text x="1135" y="461" text-anchor="middle" class="c">publica :80</text>
+ <text x="500" y="522" class="s">subred de pods: 10.42.1.0/24</text>
+</g>
+<g>
+ <rect x="470" y="575" width="800" height="185" rx="12" class="node"/>
+ <text x="500" y="617" class="t">k3s-agent-2 · 192.168.100.12</text>
+ <rect x="500" y="638" width="510" height="54" rx="4" class="chip"/><text x="755" y="671" text-anchor="middle" class="c">Traefik + microservicios de The Store</text>
+ <rect x="1030" y="638" width="210" height="54" rx="4" class="gchip"/><text x="1135" y="671" text-anchor="middle" class="c">publica :80</text>
+ <text x="500" y="732" class="s">subred de pods: 10.42.2.0/24</text>
+</g>
+<g>
+ <rect x="470" y="785" width="800" height="150" rx="12" fill="#faf0e4" stroke="#b5561e" stroke-width="2.5" stroke-dasharray="10 7"/>
+ <text x="500" y="827" class="t" fill="#b5561e">k3s-agent-3 · 192.168.100.13</text>
+ <text x="500" y="865" class="c">en reserva: creada, unida al clúster y apagada</text>
+ <text x="500" y="907" class="s">subred de pods: 10.42.3.0/24</text>
+</g>
+
+<!-- API 6443 agents -> server -->
+<path d="M1270 457 H1305 M1270 667 H1305 M1270 860 H1305 M1305 860 V247" class="api"/>
+<line x1="1305" y1="247" x2="1275" y2="247" class="api" marker-end="url(#b)"/>
+<text x="1338" y="560" class="l" fill="#2f55d4" transform="rotate(-90 1338 560)" text-anchor="middle">API 6443</text>
+
+
+<!-- Internet -->
+<line x1="1135" y1="967" x2="1135" y2="1040" class="arr" marker-end="url(#a)"/>
+<text x="1150" y="1010" class="l">HTTPS 443</text>
+<rect x="915" y="1045" width="455" height="84" rx="10" class="node"/>
+<text x="1142" y="1080" text-anchor="middle" class="c">Internet</text>
+<text x="1142" y="1108" text-anchor="middle" class="s">registry de imágenes · instalador de K3s</text>
+
+<!-- redes virtuales -->
+<rect x="30" y="1045" width="865" height="84" rx="10" class="chip" stroke-width="2"/>
+<text x="55" y="1080" class="c">Service CIDR 10.43.0.0/16</text>
+<text x="55" y="1108" class="s">IPs estables de los servicios (catalog, carts...)</text>
+
+</svg></body></html>
