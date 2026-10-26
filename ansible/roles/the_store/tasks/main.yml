@@ -1,0 +1,28 @@
+---
+- name: Crear el namespace {{ store_namespace }}
+  kubernetes.core.k8s:
+    kubeconfig: "{{ k3s_kubeconfig }}"
+    api_version: v1
+    kind: Namespace
+    name: "{{ store_namespace }}"
+    state: present
+
+- name: Aplicar los manifiestos de The Store (imágenes de {{ store_registry }})
+  kubernetes.core.k8s:
+    kubeconfig: "{{ k3s_kubeconfig }}"
+    namespace: "{{ store_namespace }}"
+    template: the-store.yaml.j2
+    apply: true
+    state: present
+
+# Sin wait_condition, el módulo espera a que todas las réplicas del Deployment
+# estén listas (la condición Available sola da True antes, por maxUnavailable: 1).
+- name: Esperar a que todos los servicios estén disponibles
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ k3s_kubeconfig }}"
+    kind: Deployment
+    namespace: "{{ store_namespace }}"
+    name: "{{ item }}"
+    wait: true
+    wait_timeout: "{{ store_ready_timeout }}"
+  loop: "{{ store_deployments }}"

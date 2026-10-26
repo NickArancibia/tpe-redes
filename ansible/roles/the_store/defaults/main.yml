@@ -1,0 +1,3 @@
+---
+store_ready_timeout: 600
+store_deployments: [catalog, carts, orders, checkout, ui]

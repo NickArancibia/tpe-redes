@@ -1,0 +1,15 @@
+---
+# Caso 2 · Desplegar The Store sobre el clúster. Cada nodo descarga del
+# registry las imágenes de los pods que le tocan.
+#
+#   ansible-playbook deploy-store.yml
+
+- name: Desplegar The Store
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - role: the_store
+  post_tasks:
+    - name: Mostrar dónde abre la tienda
+      ansible.builtin.debug:
+        msg: "The Store disponible en http://{{ groups['k3s_cluster'] | map('extract', hostvars, 'node_ip') | join('  |  http://') }}"
