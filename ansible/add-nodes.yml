@@ -1,0 +1,30 @@
+---
+# Caso 3 · Sumar capacidad. Primero se agrega el worker en inventory/hosts.yml
+# (grupo k3s_agents), después:
+#
+#   ansible-playbook add-nodes.yml
+#
+# Solo se crea el contenedor de los workers que todavía no existen;
+# los que ya existen quedan sin cambios.
+
+- name: Verificar que el clúster exista
+  hosts: k3s_server
+  gather_facts: false
+  tasks:
+    - name: Verificar que el control plane esté listo
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k3s_kubeconfig }}"
+        kind: Node
+        name: "{{ inventory_hostname }}"
+      register: server_node
+      failed_when: server_node.resources | length == 0
+
+- name: Agregar los workers del inventario que falten
+  hosts: k3s_agents
+  gather_facts: false
+  roles:
+    - role: docker_node
+      vars:
+        node_command: "{{ k3s_command }}"
+        node_env: "{{ k3s_env }}"
+    - role: k3s
