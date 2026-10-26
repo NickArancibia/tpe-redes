@@ -1,0 +1,61 @@
+---
+# Caso 4 · Retirar un worker sin cortar la tienda:
+#
+#   ansible-playbook remove-node.yml -e node=k3s-agent-3
+#
+# Después de correrlo, sacar el nodo de inventory/hosts.yml.
+
+- name: Validar el nodo a retirar
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Verificar que se indicó un worker del inventario
+      ansible.builtin.assert:
+        that:
+          - node is defined
+          - node in groups['k3s_agents']
+        fail_msg: "Indicar un worker con -e node=<nombre>. Workers: {{ groups['k3s_agents'] | join(', ') }}"
+        quiet: true
+
+- name: Retirar el nodo {{ node }}
+  hosts: "{{ node }}"
+  gather_facts: false
+  tasks:
+    - name: Consultar el nodo en Kubernetes
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k3s_kubeconfig }}"
+        kind: Node
+        name: "{{ inventory_hostname }}"
+      register: k8s_node
+
+    - name: Kubernetes en el clúster
+      when: k8s_node.resources | length > 0
+      block:
+        - name: Marcar el nodo para que no reciba pods nuevos (cordon)
+          kubernetes.core.k8s_drain:
+            kubeconfig: "{{ k3s_kubeconfig }}"
+            name: "{{ inventory_hostname }}"
+            state: cordon
+
+        - name: Drenar el nodo; Kubernetes recrea sus pods en los demás
+          kubernetes.core.k8s_drain:
+            kubeconfig: "{{ k3s_kubeconfig }}"
+            name: "{{ inventory_hostname }}"
+            state: drain
+            delete_options:
+              ignore_daemonsets: true
+              delete_emptydir_data: true
+              wait_timeout: 300
+
+        - name: Borrar el nodo del clúster
+          kubernetes.core.k8s:
+            kubeconfig: "{{ k3s_kubeconfig }}"
+            api_version: v1
+            kind: Node
+            name: "{{ inventory_hostname }}"
+            state: absent
+
+    - name: Eliminar el contenedor y el volumen del nodo
+      ansible.builtin.include_role:
+        name: docker_node
+        tasks_from: absent
