@@ -1,0 +1,28 @@
+---
+# Construye las imágenes de The Store y las publica en GitHub Container Registry,
+# de donde las descarga cada nodo. Requiere `docker login ghcr.io` previo con un
+# token con permiso write:packages.
+#
+#   ansible-playbook publish-images.yml
+
+- name: Publicar las imágenes de The Store en GitHub Container Registry
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    # docker_image_build usa BuildKit (docker buildx), igual que `docker build`.
+    # El builder clásico no sirve: el Dockerfile de checkout hace COPY --chown=node
+    # en una etapa donde ese usuario no existe, y solo BuildKit lo acepta.
+    - name: Construir cada servicio
+      community.docker.docker_image_build:
+        name: "{{ store_registry }}/the-store-{{ item }}"
+        tag: "{{ store_image_tag }}"
+        path: "{{ playbook_dir }}/../the-store-main/src/{{ item }}"
+        platform: linux/amd64
+        rebuild: always
+      loop: "{{ store_services }}"
+
+    - name: Subir cada servicio al registry
+      community.docker.docker_image_push:
+        name: "{{ store_registry }}/the-store-{{ item }}"
+        tag: "{{ store_image_tag }}"
+      loop: "{{ store_services }}"
