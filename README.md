@@ -103,9 +103,21 @@ kubectl get pods -n the-store -o wide
 
 La tienda abre en http://172.28.0.10, http://172.28.0.11 o http://172.28.0.12.
 
+La web (`ui`) corre con dos copias, una por worker: tiene anti-afinidad por nodo, así que
+nunca hay dos copias en el mismo worker. La cantidad se cambia con `store_ui_replicas`
+(`inventory/group_vars/all.yml`).
+
 ### 3 · Capacidad: sumar un nodo
 
-Agregar el worker en `inventory/hosts.yml`, dentro de `k3s_agents`:
+Primero se pide una copia más de la web. Con dos workers no tiene dónde ir y queda en Pending
+(el playbook avisa cuántas copias esperan):
+
+```bash
+ansible-playbook deploy-store.yml -e store_ui_replicas=3
+kubectl get pods -n the-store -l app.kubernetes.io/name=ui -o wide   # una copia en Pending
+```
+
+Después se agrega el worker en `inventory/hosts.yml`, dentro de `k3s_agents`:
 
 ```yaml
             k3s-agent-3:
@@ -116,11 +128,19 @@ Agregar el worker en `inventory/hosts.yml`, dentro de `k3s_agents`:
 ansible-playbook add-nodes.yml        # solo k3s-agent-3 tiene cambios
 docker ps
 kubectl get nodes                     # 4 nodos Ready
+kubectl get pods -n the-store -l app.kubernetes.io/name=ui -o wide   # la copia corre en k3s-agent-3
 ```
+
+El orden importa: `deploy-store.yml` espera solo las copias que entran en los workers del
+inventario, así que la copia extra se pide antes de agregar el worker.
 
 ### 4 · Mantenimiento: retirar un nodo
 
+Primero se vuelve a dos copias de la web; si no, la copia del nodo retirado quedaría en
+Pending:
+
 ```bash
+ansible-playbook deploy-store.yml
 ansible-playbook remove-node.yml -e node=k3s-agent-1
 ```
 
@@ -167,7 +187,9 @@ también borra nodos que ya no figuran en el inventario. Además elimina `artifa
 
 ## Limitaciones conocidas
 
-- Cada servicio de The Store y Traefik tienen una sola réplica. Si se drena el nodo que los
-  tiene, la tienda deja de responder unos segundos hasta que los pods se recrean en otro nodo.
+- Catalog, carts, orders, checkout y Traefik tienen una sola réplica. Si se drena el nodo que
+  los tiene, la tienda deja de responder unos segundos hasta que los pods se recrean en otro
+  nodo.
 - Por la localidad de imágenes, el scheduler suele preferir los nodos que ya las tienen
-  descargadas, así que un nodo recién agregado puede no recibir pods de la tienda al principio.
+  descargadas, así que un nodo recién agregado puede no recibir pods de esos servicios al
+  principio. La copia extra de la web sí va al nodo nuevo, porque es el único que la acepta.

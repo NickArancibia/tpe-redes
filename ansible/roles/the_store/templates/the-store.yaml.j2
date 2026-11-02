@@ -572,7 +572,7 @@ metadata:
     app.kubernetes.io/owner: retail-store-sample
     app.kubernetes.io/managed-by: Helm
 spec:
-  replicas: 1
+  replicas: {{ store_ui_replicas }}
   strategy:
     rollingUpdate:
       maxUnavailable: 1
@@ -591,6 +591,15 @@ spec:
         app.kubernetes.io/component: service
         app.kubernetes.io/owner: retail-store-sample
     spec:
+      # Una copia de la web por nodo: si no hay un worker libre, la copia queda en Pending.
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: ui
+                  app.kubernetes.io/instance: ui
+              topologyKey: kubernetes.io/hostname
       serviceAccountName: ui
       securityContext:
         fsGroup: 1000

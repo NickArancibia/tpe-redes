@@ -1,3 +1,4 @@
 ---
 store_ready_timeout: 600
-store_deployments: [catalog, carts, orders, checkout, ui]
+# ui se espera aparte: puede tener copias en Pending a propósito (ver store_ui_replicas).
+store_deployments: [catalog, carts, orders, checkout]

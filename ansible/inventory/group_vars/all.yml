@@ -29,3 +29,7 @@ store_namespace: the-store
 store_registry: ghcr.io/nickarancibia
 store_image_tag: "1.0.0"
 store_services: [catalog, cart, orders, checkout, ui]
+# Copias de la web (ui). Hay como máximo una por worker (anti-afinidad en el manifiesto):
+# si se piden más copias que workers, las que sobran quedan en Pending hasta que se suma
+# un worker. Caso 3: ansible-playbook deploy-store.yml -e store_ui_replicas=3
+store_ui_replicas: 2

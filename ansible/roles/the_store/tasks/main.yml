@@ -17,7 +17,7 @@
 
 # Sin wait_condition, el módulo espera a que todas las réplicas del Deployment
 # estén listas (la condición Available sola da True antes, por maxUnavailable: 1).
-- name: Esperar a que todos los servicios estén disponibles
+- name: Esperar a que los servicios estén disponibles
   kubernetes.core.k8s_info:
     kubeconfig: "{{ k3s_kubeconfig }}"
     kind: Deployment
@@ -26,3 +26,25 @@
     wait: true
     wait_timeout: "{{ store_ready_timeout }}"
   loop: "{{ store_deployments }}"
+
+# La web tiene una copia por worker como máximo; se espera solo a las que tienen lugar.
+- name: Esperar a las copias de la web que entran en los workers
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ k3s_kubeconfig }}"
+    kind: Deployment
+    namespace: "{{ store_namespace }}"
+    name: ui
+  register: store_ui
+  vars:
+    store_ui_fit: "{{ [store_ui_replicas | int, groups['k3s_agents'] | length] | min }}"
+  until: (store_ui.resources[0].status.readyReplicas | default(0)) >= (store_ui_fit | int)
+  retries: "{{ store_ready_timeout // 5 }}"
+  delay: 5
+
+- name: Avisar las copias de la web que esperan un servidor libre
+  ansible.builtin.debug:
+    msg: >-
+      {{ store_ui_replicas | int - groups['k3s_agents'] | length }} copia(s) de la web
+      en Pending: hay {{ groups['k3s_agents'] | length }} workers y se pidieron
+      {{ store_ui_replicas }} copias. Sumar un worker con add-nodes.yml.
+  when: store_ui_replicas | int > groups['k3s_agents'] | length
