@@ -303,7 +303,7 @@
         \item Herramienta open source
         \item Recetas que dicen cómo tienen que quedar los servidores
         \item Hace solo lo que falta
-        \item Misma receta, mismo resultado
+        \item Menos errores humanos
       \end{itemize}
   \end{columns}
 \end{frame}
@@ -313,7 +313,8 @@
     \item Ansible configura servidores a partir de archivos que describen cómo tienen que quedar.
     \item Compara lo que hay con lo que pedimos y cambia solo la diferencia: correrlo dos veces no
       rompe nada. Un script, en cambio, repite siempre los mismos pasos.
-    \item Las recetas están en el repositorio, así que cualquiera del equipo las corre y obtiene el
+    \item Menos errores humanos: nadie tipea los pasos a mano ni se saltea uno. Las recetas están en
+      el repositorio y Ansible las ejecuta siempre igual, así que cualquiera del equipo obtiene el
       mismo resultado.
     \item Si preguntan: las recetas son playbooks. Ansible corre en el host y usa la API de Docker
       (\texttt{community.docker}) para crear los nodos y la de Kubernetes (\texttt{kubernetes.core})

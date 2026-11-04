@@ -39,7 +39,6 @@ ansible/
 ├── add-nodes.yml                 caso 3
 ├── remove-node.yml               caso 4
 ├── destroy.yml                   caso 5
-├── publish-images.yml            construye y sube las imágenes a GHCR
 └── artifacts/                    (generado, no se versiona) kubeconfig y token
 the-store-main/                   código de The Store
 ```
@@ -65,19 +64,12 @@ ansible-galaxy collection install -r requirements.yml -p ./collections
 
 Todos los comandos siguientes se corren desde `ansible/`.
 
-## 0 · Publicar las imágenes (una sola vez)
+## Imágenes de la tienda
 
-Los nodos descargan las imágenes de GitHub Container Registry. Para subirlas hace falta un
-token de GitHub (classic) con el permiso `write:packages`:
-
-```bash
-echo "$GHCR_TOKEN" | docker login ghcr.io -u <usuario> --password-stdin
-ansible-playbook publish-images.yml
-```
-
-Después, en GitHub → Packages, poner cada paquete `the-store-*` como **Public** para que los
-nodos puedan descargarlo sin credenciales. El owner y el tag se cambian en
-`inventory/group_vars/all.yml` (`store_registry`, `store_image_tag`).
+Las imágenes ya están publicadas y son públicas en GitHub Container Registry
+(`ghcr.io/nickarancibia/the-store-<servicio>:1.0.0`), y `inventory/group_vars/all.yml` ya
+apunta ahí. Los nodos las descargan solos: para correr los casos de uso no hace falta construir
+ni subir nada, ni tener credenciales de GitHub.
 
 ## Casos de uso
 
