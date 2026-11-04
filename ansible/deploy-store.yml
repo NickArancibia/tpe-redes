@@ -12,4 +12,4 @@
   post_tasks:
     - name: Mostrar dónde abre la tienda
       ansible.builtin.debug:
-        msg: "The Store disponible en http://{{ groups['k3s_cluster'] | map('extract', hostvars, 'node_ip') | join('  |  http://') }}"
+        msg: "The Store disponible en {{ store_urls | join('  |  ') }}"

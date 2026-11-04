@@ -21,6 +21,20 @@ k3s_image: rancher/k3s:v1.33.4-k3s1
 k3s_server_ip: "{{ hostvars[groups['k3s_server'][0]]['node_ip'] }}"
 k3s_server_url: "https://{{ k3s_server_ip }}:6443"
 k3s_kubeconfig: "{{ artifacts_dir }}/kubeconfig"
+
+# Acceso desde el host. En Linux el host llega directo a las IPs de k3s-net. En macOS,
+# Docker Desktop corre los contenedores en una VM y esas IPs no son alcanzables, así que
+# se publican en 127.0.0.1 la API (:6443) y la entrada HTTP de la tienda.
+# Se detecta solo; para forzarlo: -e k3s_publish_ports=true|false
+k3s_publish_ports: "{{ lookup('ansible.builtin.pipe', 'uname -s') == 'Darwin' }}"
+store_http_host_port: 8080
+# Dirección de la API que usa el host (kubeconfig, espera de la API). Los agents
+# siguen usando k3s_server_url dentro de k3s-net.
+k3s_host_api_ip: "{{ '127.0.0.1' if k3s_publish_ports | bool else k3s_server_ip }}"
+k3s_host_api_url: "https://{{ k3s_host_api_ip }}:6443"
+store_urls: >-
+  {{ ['http://localhost:' ~ store_http_host_port] if k3s_publish_ports | bool
+     else groups['k3s_cluster'] | map('extract', hostvars, 'node_ip') | map('regex_replace', '^', 'http://') | list }}
 # El token se genera una única vez y se guarda en artifacts/ (no se versiona).
 k3s_token: "{{ lookup('ansible.builtin.password', artifacts_dir + '/k3s-token', chars=['ascii_letters', 'digits'], length=48) }}"
 

@@ -39,6 +39,7 @@
       - name: "{{ k3s_network_name }}"
         ipv4_address: "{{ node_ip }}"
     network_mode: "{{ k3s_network_name }}"
+    published_ports: "{{ node_published_ports }}"
     restart_policy: unless-stopped
     labels: "{{ project_label | combine({'com.the-store.node': inventory_hostname}) }}"
     # Al recrear o borrar el contenedor no quedan volúmenes anónimos huérfanos.

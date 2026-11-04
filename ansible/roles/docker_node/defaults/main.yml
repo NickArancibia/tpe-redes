@@ -3,3 +3,5 @@
 node_command: []
 node_env: {}
 node_volume: "{{ inventory_hostname }}-data"
+# Puertos del nodo publicados en el host (vacío: ninguno, como en Linux).
+node_published_ports: []

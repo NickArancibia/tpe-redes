@@ -43,7 +43,7 @@ Tu computadora (Linux + Docker)
 ```
 
 La tienda se abre en el navegador con la IP de cualquier servidor, por ejemplo
-http://172.28.0.11.
+http://172.28.0.11 (en macOS, http://localhost:8080).
 
 | Receta (`ansible/`) | Caso | Qué hace |
 |---|---|---|
@@ -57,8 +57,13 @@ http://172.28.0.11.
 
 ### Qué hace falta
 
-- **Linux con Docker Engine.** Probado en Ubuntu 24.04 con Docker 29. En Mac o Windows (Docker
-  Desktop) no anda tal cual: ver [Si algo no anda](#si-algo-no-anda).
+- **Linux con Docker Engine** (probado en Ubuntu 24.04 con Docker 29) **o macOS con Docker
+  Desktop** (probado en Apple Silicon con Docker 28). En Windows no está probado.
+- **En macOS** Docker Desktop corre los contenedores dentro de una VM, así que desde la Mac no se
+  llega a las IPs `172.28.0.x`. Las recetas lo detectan solas (`uname -s`) y publican en
+  `127.0.0.1` dos puertos del coordinador: la API en `:6443` (el kubeconfig apunta ahí) y la
+  tienda en http://localhost:8080. Los comandos son los mismos. Para forzar un modo:
+  `-e k3s_publish_ports=true|false`.
 - **Ansible** (core 2.16 o más nuevo).
 - **kubectl**, solo para mirar el clúster.
 - Conexión a internet: los servidores descargan las imágenes de la tienda de GitHub Container
@@ -140,7 +145,8 @@ kubectl get pods -n the-store -o wide
 - Todos los pods en `Running`, repartidos entre `k3s-agent-1` y `k3s-agent-2`. Ninguno en
   `k3s-server`.
 - Dos copias de la web (`ui-...`), una en cada worker.
-- La tienda abre en http://172.28.0.11 y en http://172.28.0.12. Cualquier servidor atiende.
+- La tienda abre en http://172.28.0.11 y en http://172.28.0.12. Cualquier servidor atiende. En
+  macOS, en http://localhost:8080.
 
 La primera vez cada servidor descarga las imágenes: puede tardar unos 5 minutos.
 
@@ -254,7 +260,7 @@ una etiqueta del proyecto.
 | `Failed to import the required Python library (docker)` o `(kubernetes)` | Faltan las librerías en el Python de Ansible | Repetir la [preparación](#preparación-una-sola-vez) |
 | `couldn't resolve module/action 'community.docker...'` | Faltan las colecciones | `ansible-galaxy collection install -r requirements.yml -p ./collections` desde `ansible/` |
 | `kubectl` no conecta | Falta el kubeconfig | `export KUBECONFIG=$PWD/artifacts/kubeconfig` desde `ansible/` |
-| No se llega a `172.28.0.x` (Mac o Windows) | Docker Desktop corre los contenedores en una VM y la computadora no tiene ruta a esa red | Usar Linux con Docker Engine |
+| No se llega a `172.28.0.x` (Mac o Windows) | Docker Desktop corre los contenedores en una VM y la computadora no tiene ruta a esa red | En macOS es normal: la tienda está en http://localhost:8080 y el kubeconfig apunta a `127.0.0.1`. En Windows, usar Linux con Docker Engine |
 | La red `k3s-net` no se crea | Otra red Docker ya usa `172.28.0.0/24` | Borrar esa red o cambiar la subred en `inventory/group_vars/all.yml` |
 | Pods en `ContainerCreating` varios minutos | Están descargando las imágenes | Esperar; con mala conexión tarda más |
 
@@ -299,7 +305,7 @@ computadora y usa dos APIs:
 | Para qué | Cómo llega | Credencial |
 |---|---|---|
 | Crear y borrar servidores, red y volúmenes | Socket de Docker (`/var/run/docker.sock`) | Permiso sobre el socket |
-| Desplegar, drenar y verificar | API de Kubernetes, `https://172.28.0.10:6443` | `artifacts/kubeconfig` |
+| Desplegar, drenar y verificar | API de Kubernetes, `https://172.28.0.10:6443` (en macOS, `https://127.0.0.1:6443`) | `artifacts/kubeconfig` |
 
 La única vez que Ansible ejecuta algo adentro de un servidor es para leer el kubeconfig que
 genera K3s, y lo hace con `docker exec`.
@@ -313,7 +319,10 @@ genera K3s, y lo hace con `docker exec`.
 | Services | 10.43.0.0/16 | IPs internas de cada servicio; CoreDNS las resuelve por nombre |
 
 En Linux, Docker crea una interfaz en la computadora para `k3s-net`, así que la computadora llega
-directo a `172.28.0.x` sin publicar puertos.
+directo a `172.28.0.x` sin publicar puertos. En macOS esa interfaz queda dentro de la VM de
+Docker Desktop, así que el coordinador publica `127.0.0.1:6443` (API) y `127.0.0.1:8080` → `:80`
+(tienda). Se publican solo en el coordinador porque nunca se retira; ServiceLB atiende el puerto
+80 en todos los servidores, así que igual llega a la web.
 
 La entrada de los clientes es Traefik con ServiceLB, que vienen con K3s y publican el puerto 80
 en cada servidor. El Ingress manda todo el tráfico a la web.
@@ -331,7 +340,9 @@ en cada servidor. El Ingress manda todo el tráfico a la web.
   `node-role.kubernetes.io/control-plane:NoSchedule`, así las partes de la tienda corren solo en
   los workers.
 - **Kubeconfig:** se copia del server y se reescribe para apuntar a `https://172.28.0.10:6443`.
-  Esa IP está en el certificado gracias a `--tls-san`.
+  Esa IP está en el certificado gracias a `--tls-san`. En macOS apunta a
+  `https://127.0.0.1:6443`, el puerto publicado del server (`127.0.0.1` ya está en el
+  certificado de K3s).
 - **Etiqueta del proyecto:** red, volúmenes y contenedores llevan
   `com.the-store.project=the-store-k3s`. `destroy.yml` borra todo lo que tenga esa etiqueta.
 
@@ -358,6 +369,8 @@ en cada servidor. El Ingress manda todo el tráfico a la web.
 | `store_registry` | `ghcr.io/nickarancibia` | De dónde se bajan las imágenes |
 | `store_image_tag` | `1.0.0` | Versión de las imágenes |
 | `store_ui_replicas` | `2` | Copias de la web; se cambia en una corrida con `-e store_ui_replicas=3` |
+| `k3s_publish_ports` | `true` en macOS, `false` en Linux | Publicar la API y la tienda en `127.0.0.1` |
+| `store_http_host_port` | `8080` | Puerto de la tienda en el host cuando se publican puertos |
 
 ## Limitaciones
 

@@ -10,3 +10,8 @@ k3s_command:
   - --node-taint=node-role.kubernetes.io/control-plane:NoSchedule
 k3s_env:
   K3S_TOKEN: "{{ k3s_token }}"
+# Puertos publicados en el host, solo con k3s_publish_ports (macOS). Van en el server
+# porque nunca se retira: la API y la entrada HTTP de ServiceLB, que corre en todos los nodos.
+node_published_ports: >-
+  {{ ['127.0.0.1:6443:6443', '127.0.0.1:' ~ store_http_host_port ~ ':80']
+     if k3s_publish_ports | bool else [] }}
